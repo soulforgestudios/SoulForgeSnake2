@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake: SoulForge Edition – Advanced</title>
+    <title>Snake: SoulForge Edition </title>
     <style>
         :root {
             --bg: #050508;
@@ -556,7 +556,7 @@
 <body>
 <!-- Dev notes overlay -->
 <div id="dev-notes">
-    <div class="dev-title">DEV NOTES</div>
+    <div class="dev-title">DEV NOTES 1.0.0 RELEASE</div>
     <div class="dev-line">– Smooth glide interpolation</div>
     <div class="dev-line">– Walls toggle (ON/OFF, wrap like Google)</div>
     <div class="dev-line">– Speed, grid, snake & color presets</div>
@@ -766,7 +766,7 @@
 
 <!-- Version footer -->
 <div id="version-footer">
-    v1.2.0 &copy; SoulForge Studios – Advanced Build
+    v1.0.0 RELEASE &copy; SoulForge Studios – Advanced Build
 </div>
 
 <!-- Mobile controls -->
