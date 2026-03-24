@@ -422,6 +422,125 @@
             transform: translateX(50%) translateY(0px);
         }
 
+        /* Achievements Screen - Xbox 360 Style */
+        .achievements-container {
+            width: 100%;
+            max-width: 600px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 0 10px;
+        }
+
+        .achievement-card {
+            background: linear-gradient(135deg, rgba(69,113,227,0.15), rgba(60,245,255,0.08));
+            border: 1px solid rgba(60,245,255,0.4);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .achievement-card:hover {
+            background: linear-gradient(135deg, rgba(69,113,227,0.25), rgba(60,245,255,0.15));
+            border-color: rgba(60,245,255,0.7);
+            box-shadow: 0 0 15px rgba(60,245,255,0.3);
+        }
+
+        .achievement-card.locked {
+            opacity: 0.6;
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .achievement-card.locked:hover {
+            opacity: 0.7;
+        }
+
+        .ach-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ach-icon {
+            font-size: 2.2rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .ach-info {
+            flex: 1;
+        }
+
+        .ach-title {
+            font-family: sans-serif;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--accent-3);
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+
+        .ach-desc {
+            font-family: sans-serif;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .ach-score {
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-align: right;
+            min-width: 45px;
+        }
+
+        .ach-status {
+            font-family: sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .ach-status.unlocked {
+            background: rgba(60,245,255,0.3);
+            color: var(--accent-3);
+            border: 1px solid rgba(60,245,255,0.5);
+        }
+
+        .ach-status.locked {
+            background: rgba(100,100,100,0.2);
+            color: rgba(255,255,255,0.4);
+            border: 1px solid rgba(100,100,100,0.3);
+        }
+
+        @media (max-width: 900px) {
+            .achievements-container {
+                max-height: 350px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .achievements-container {
+                max-height: 300px;
+            }
+            .ach-icon {
+                font-size: 1.8rem;
+            }
+        }
+
+        #achievement-toast.visible {
+            opacity: 1;
+            transform: translateX(50%) translateY(0px);
+        }
+
         @media (max-width: 900px) {
             #mobile-controls { display: flex; }
         }
@@ -458,7 +577,7 @@
     <button class="btn-ui" onclick="showBoard()">Hall of Fame</button>
     <button class="btn-ui" onclick="showSettings()">Settings</button>
     <button class="btn-ui" onclick="showCredits()">Credits</button>
-    <button class="btn-ui" oneclick="showAchievements()">Achievements</button>
+    <button class="btn-ui" onclick="showAchievements()">Achievements</button>
 </div>
 
 <div id="game-layer" class="screen hidden">
@@ -588,6 +707,61 @@
             <div class="credit-name">You, the Player</div>
         </div>
     </div>
+</div>
+
+<!-- Achievements Screen -->
+<div id="achievements-layer" class="screen hidden">
+    <h2 style="color:var(--accent); letter-spacing:10px; margin-bottom: 25px; text-shadow:0 0 18px rgba(255,206,68,0.9);">ACHIEVEMENTS</h2>
+    <div class="achievements-container">
+        <div class="achievement-card" id="ach-firstblood">
+            <div class="ach-header">
+                <div class="ach-icon">🩸</div>
+                <div class="ach-info">
+                    <div class="ach-title">FIRST BLOOD</div>
+                    <div class="ach-desc">Eat your first apple</div>
+                </div>
+                <div class="ach-score">10G</div>
+            </div>
+            <div class="ach-status unlocked">UNLOCKED</div>
+        </div>
+
+        <div class="achievement-card" id="ach-tenstreak">
+            <div class="ach-header">
+                <div class="ach-icon">🔥</div>
+                <div class="ach-info">
+                    <div class="ach-title">COMBO FIEND</div>
+                    <div class="ach-desc">Reach a 2.5x combo multiplier</div>
+                </div>
+                <div class="ach-score">30G</div>
+            </div>
+            <div class="ach-status locked">LOCKED</div>
+        </div>
+
+        <div class="achievement-card" id="ach-wallmaster">
+            <div class="ach-header">
+                <div class="ach-icon">🧱</div>
+                <div class="ach-info">
+                    <div class="ach-title">WALL MASTER</div>
+                    <div class="ach-desc">Score 25+ points with walls ON</div>
+                </div>
+                <div class="ach-score">50G</div>
+            </div>
+            <div class="ach-status locked">LOCKED</div>
+        </div>
+
+        <div class="achievement-card" id="ach-ghostwalker">
+            <div class="ach-header">
+                <div class="ach-icon">👻</div>
+                <div class="ach-info">
+                    <div class="ach-title">GHOST WALKER</div>
+                    <div class="ach-desc">Die while ghost power is active</div>
+                </div>
+                <div class="ach-score">40G</div>
+            </div>
+            <div class="ach-status locked">LOCKED</div>
+        </div>
+    </div>
+    <button class="btn-ui" style="margin-top:25px;" onclick="hideScreens()">Return</button>
 </div>
 
 <!-- Version footer -->
@@ -859,6 +1033,8 @@
         if (!achievements.firstBlood) {
             achievements.firstBlood = true;
             showAchievement('FIRST BLOOD – Your first apple.');
+            playSound('achievement');
+            updateAchievementUI();
         }
 
         comboTimer = COMBO_WINDOW;
@@ -874,6 +1050,8 @@
         if (!achievements.tenStreak && comboMultiplier >= 2.5) {
             achievements.tenStreak = true;
             showAchievement('COMBO FIEND – Huge streak!');
+            playSound('achievement');
+            updateAchievementUI();
         }
 
         // Particles for food
@@ -1041,10 +1219,14 @@
         if (walls && !achievements.wallMaster && score >= 25) {
             achievements.wallMaster = true;
             showAchievement('WALL MASTER – 25+ with walls.');
+            playSound('achievement');
+            updateAchievementUI();
         }
         if (activePowerup && activePowerup.type === 'ghost' && !achievements.ghostWalker) {
             achievements.ghostWalker = true;
             showAchievement('GHOST WALKER – Fell with ghost power.');
+            playSound('achievement');
+            updateAchievementUI();
         }
 
         document.getElementById('final-score').innerText = score;
@@ -1151,6 +1333,12 @@
         document.getElementById('credits-layer').classList.remove('hidden');
     }
 
+    function showAchievements() {
+        document.getElementById('menu-layer').classList.add('hidden');
+        document.getElementById('achievements-layer').classList.remove('hidden');
+        updateAchievementUI();
+    }
+
     function hideScreens() {
         document.querySelectorAll('.screen').forEach(s => {
             if (s.id === 'menu-layer') s.classList.remove('hidden');
@@ -1198,9 +1386,25 @@
 
     function playSound(type) {
         if (!soundOn) return;
-        // You can wire actual audio here using HTMLAudioElement.
-        // Example stub:
-        // if (type === 'eat') new Audio('eat.wav').play();
+        
+        const soundMap = {
+            'eat': 'sounds/eat.mp3',
+            'death': 'sounds/death.mp3',
+            'power': 'sounds/powerup.mp3',
+            'achievement': 'sounds/achievement.mp3',
+            'menuselect': 'sounds/menuselect.mp3'
+        };
+
+        const filepath = soundMap[type];
+        if (filepath) {
+            try {
+                const audio = new Audio(filepath);
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            } catch (e) {
+                console.log('Audio error:', e);
+            }
+        }
     }
 
     function isGhostActive() {
@@ -1370,6 +1574,33 @@
         if (achievements.ghostWalker) unlocked.push('Ghost Walker');
         if (unlocked.length === 0) return 'No achievements yet. The Forge awaits.';
         return 'Unlocked: ' + unlocked.join(', ');
+    }
+
+    function updateAchievementUI() {
+        const cardMap = {
+            'firstBlood': 'ach-firstblood',
+            'tenStreak': 'ach-tenstreak',
+            'wallMaster': 'ach-wallmaster',
+            'ghostWalker': 'ach-ghostwalker'
+        };
+
+        for (const [key, cardId] of Object.entries(cardMap)) {
+            const card = document.getElementById(cardId);
+            const statusEl = card.querySelector('.ach-status');
+            if (achievements[key]) {
+                card.classList.add('unlocked');
+                card.classList.remove('locked');
+                statusEl.textContent = 'UNLOCKED';
+                statusEl.classList.add('unlocked');
+                statusEl.classList.remove('locked');
+            } else {
+                card.classList.add('locked');
+                card.classList.remove('unlocked');
+                statusEl.textContent = 'LOCKED';
+                statusEl.classList.remove('unlocked');
+                statusEl.classList.add('locked');
+            }
+        }
     }
 </script>
 
