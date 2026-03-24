@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake: SoulForge Edition – Advanced</title>
+    <style>
+        :root {
+            --bg: #050508;
+            --bg-grad-1: #050508;
+            --bg-grad-2: #15152b;
+            --bg-grad-3: #2b1040;
+            --accent: #ffce44;
+            --accent-2: #ff6bd5;
+            --accent-3: #3cf5ff;
+            --grass-1: #1c2b2c;
+            --grass-2: #10191c;
+            --snake-main: #3cf5ff;
+            --snake-alt: #4571e3;
+            --text: #ffffff;
+            --font: 'Cinzel', serif;
+            --glass: rgba(9, 11, 29, 0.5);
+            --border: rgba(255, 206, 68, 0.3);
+        }
+
+        * { box-sizing: border-box; }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background:
+              radial-gradient(circle at top left, var(--bg-grad-3), transparent 60%),
+              radial-gradient(circle at bottom right, var(--accent-2), transparent 65%),
+              linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2));
+            color: var(--text);
+            font-family: var(--font);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: -20%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.05), transparent 60%);
+            mix-blend-mode: soft-light;
+            opacity: 0.6;
+            pointer-events: none;
+            animation: bg-pulse 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes bg-pulse {
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            background: radial-gradient(circle at top, rgba(0,0,0,0.75), rgba(0,0,0,0.92));
+            z-index: 1000;
+            transition: transform 0.6s, opacity 0.6s;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.05);
+        }
+
+        /* Intro Animations */
+        .intro-text {
+            font-size: 3.5rem;
+            letter-spacing: 20px;
+            text-transform: uppercase;
+            text-align: center;
+            opacity: 0;
+            text-shadow:
+              0 0 15px rgba(60,245,255,0.9),
+              0 0 40px rgba(255,107,213,0.9);
+        }
+
+        .animate-text {
+            animation: soulFade 3.5s forwards;
+        }
+
+        @keyframes soulFade {
+            0% { opacity: 0; transform: scale(0.9); filter: blur(10px); }
+            30% { opacity: 1; transform: scale(1); filter: blur(0px); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: scale(1.1); filter: blur(5px); }
+        }
+
+        /* UI Styling */
+        .btn-ui {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            border: 1px solid var(--border);
+            color: white;
+            padding: 18px 45px;
+            font-size: 0.9rem;
+            letter-spacing: 6px;
+            cursor: pointer;
+            transition: 0.25s ease-out;
+            text-transform: uppercase;
+            margin: 12px;
+            min-width: 300px;
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow:
+              0 0 0 1px rgba(255,255,255,0.04),
+              0 0 18px rgba(0,0,0,0.85);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-ui::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.15), transparent);
+            transform: translateX(-120%);
+            transition: transform 0.5s ease-out;
+        }
+
+        .btn-ui:hover::after {
+            transform: translateX(120%);
+        }
+
+        .btn-ui:hover {
+            background: linear-gradient(135deg, var(--accent-3), var(--accent-2));
+            color: #050506;
+            transform: translateY(-4px) scale(1.02);
+            border-color: rgba(255,255,255,0.8);
+            box-shadow:
+              0 0 0 1px rgba(255,255,255,0.3),
+              0 0 30px rgba(255,107,213,0.8);
+        }
+
+        #stats-bar {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(90deg, rgba(69,113,227,0.95), rgba(60,245,255,0.95));
+            border-radius: 18px 18px 0 0;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1100;
+            min-width: 260px;
+            color: #050506;
+            box-shadow:
+              0 0 0 1px rgba(255,255,255,0.12),
+              0 12px 30px rgba(0,0,0,0.9);
+            animation: stats-pulse 6s ease-in-out infinite;
+        }
+
+        @keyframes stats-pulse {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-2px); }
+        }
+
+        #gameCanvas {
+            border: 3px solid rgba(60,245,255,0.9);
+            border-radius: 18px;
+            box-shadow:
+              0 0 25px rgba(60,245,255,0.5),
+              0 30px 60px rgba(0,0,0,0.9);
+            display: block;
+            background: radial-gradient(circle at center, rgba(15, 20, 40, 0.9), #050508);
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container-box {
+            background: radial-gradient(circle at top, rgba(255,255,255,0.06), rgba(5,5,8,0.95));
+            padding: 40px;
+            border-radius: 25px;
+            width: 420px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            box-shadow:
+              0 20px 45px rgba(0,0,0,0.85),
+              0 0 0 1px rgba(255,255,255,0.04);
+        }
+
+        /* Scrolling Credits */
+        .credits-window {
+            height: 350px;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            mask-image: linear-gradient(transparent, black 20%, black 80%, transparent);
+        }
+
+        .credits-wrap {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: scrollUp 25s linear infinite;
+        }
+
+        @keyframes scrollUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(-130%); }
+        }
+
+        .credit-header {
+            color: var(--accent-3);
+            font-size: 11px;
+            letter-spacing: 5px;
+            margin-top: 40px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .credit-name {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        /* Dev Notes (top-right) */
+        #dev-notes {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(5,5,8,0.82);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-family: sans-serif;
+            font-size: 11px;
+            max-width: 260px;
+            z-index: 1200;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.85);
+        }
+
+        .dev-title {
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent-3);
+            margin-bottom: 6px;
+        }
+
+        .dev-line {
+            opacity: 0.75;
+            margin-bottom: 3px;
+        }
+
+        /* Version footer (bottom-right) */
+        #version-footer {
+            position: fixed;
+            right: 15px;
+            bottom: 12px;
+            font-family: sans-serif;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(5,5,8,0.85);
+            border-radius: 8px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(8px);
+            z-index: 1200;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.9);
+        }
+
+        /* Settings sections */
+        .settings-section-title {
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent-3);
+            margin-top: 10px;
+            margin-bottom: 2px;
+        }
+
+        .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .settings-row .btn-ui {
+            min-width: 140px;
+            padding: 10px 18px;
+            margin: 6px;
+            letter-spacing: 3px;
+            font-size: 0.7rem;
+        }
+
+        /* Mobile controls */
+        #mobile-controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1150;
+        }
+
+        .mobile-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .mobile-btn {
+            width: 60px;
+            height: 60px;
+            margin: 6px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.4);
+            background: radial-gradient(circle at top, rgba(255,255,255,0.1), rgba(5,5,8,0.9));
+            color: white;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.8);
+        }
+
+        .mobile-btn:active {
+            transform: translateY(2px) scale(0.97);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+        }
+
+        /* Pause badge */
+        #pause-badge {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 5px;
+            padding: 8px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(5,5,8,0.9);
+            color: rgba(255,255,255,0.85);
+            z-index: 1120;
+            display: none;
+        }
+
+        /* Debug console */
+        #debug-console {
+            position: fixed;
+            left: 15px;
+            bottom: 12px;
+            font-family: monospace;
+            font-size: 10px;
+            color: rgba(255,255,255,0.8);
+            background: rgba(5,5,8,0.85);
+            border-radius: 8px;
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            z-index: 1200;
+            max-width: 200px;
+        }
+
+        #debug-console span.label {
+            color: var(--accent-3);
+        }
+
+        /* Achievements */
+        #achievement-toast {
+            position: fixed;
+            top: 90px;
+            right: 50%;
+            transform: translateX(50%);
+            background: linear-gradient(135deg, rgba(60,245,255,0.95), rgba(255,206,68,0.95));
+            color: #050506;
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            padding: 10px 18px;
+            border-radius: 999px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.85);
+            border: 1px solid rgba(255,255,255,0.6);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s, transform 0.4s;
+            z-index: 1300;
+            letter-spacing: 2px;
+        }
+
+        #achievement-toast.visible {
+            opacity: 1;
+            transform: translateX(50%) translateY(0px);
+        }
+
+        @media (max-width: 900px) {
+            #mobile-controls { display: flex; }
+        }
+
+        @media (max-width: 600px) {
+            .intro-text { font-size: 2.3rem; letter-spacing: 10px; }
+            #stats-bar { font-size: 1rem; padding: 6px 12px; }
+            .container-box { width: 90%; padding: 25px 16px; }
+            .btn-ui { min-width: 220px; padding: 12px 24px; letter-spacing: 4px; }
+        }
+    </style>
+</head>
+<body>
+<!-- Dev notes overlay -->
+<div id="dev-notes">
+    <div class="dev-title">DEV NOTES</div>
+    <div class="dev-line">– Smooth glide interpolation</div>
+    <div class="dev-line">– Walls toggle (ON/OFF, wrap like Google)</div>
+    <div class="dev-line">– Speed, grid, snake & color presets</div>
+    <div class="dev-line">– Power-ups, obstacles, combos</div>
+</div>
+
+<div id="intro-1" class="screen">
+    <div class="intro-text">SoulForge Studios</div>
+</div>
+
+<div id="intro-2" class="screen hidden">
+    <div class="intro-text" style="font-size: 1.5rem;">All Rights Reserved</div>
+</div>
+
+<div id="menu-layer" class="screen hidden">
+    <h1 style="font-size: 85px; color: var(--accent); letter-spacing: 20px; margin:0; text-align:center; text-shadow:0 0 25px rgba(255,206,68,0.9);">SOULFORGE SNAKE 2</h1>
+    <button class="btn-ui" onclick="startGame()">Enter the Forge</button>
+    <button class="btn-ui" onclick="showBoard()">Hall of Fame</button>
+    <button class="btn-ui" onclick="showSettings()">Settings</button>
+    <button class="btn-ui" onclick="showCredits()">Credits</button>
+    <button class="btn-ui" oneclick="showAchievements()">Achievements</button>
+</div>
+
+<div id="game-layer" class="screen hidden">
+    <div class="game-wrapper">
+        <div id="stats-bar">
+            <span>🍎 <span id="score-val">0</span></span>
+            <span>🏆 <span id="high-score-val">0</span></span>
+            <span id="combo-indicator" style="font-size:0.8rem;">COMBO: x1</span>
+            <span id="wall-indicator" style="font-size:0.8rem;">WALLS: ON</span>
+            <button class="btn-ui" style="min-width:120px;padding:6px 10px;font-size:0.6rem;letter-spacing:3px;" onclick="togglePause()">PAUSE</button>
+        </div>
+        <div id="pause-badge">PAUSED</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+</div>
+
+<div id="over-layer" class="screen hidden">
+    <h2 style="color:#e74c3c; letter-spacing:10px; font-size: 3rem; text-shadow:0 0 24px rgba(231,76,60,0.9);">FORGE COLD</h2>
+    <div class="container-box">
+        <p style="font-family: sans-serif; font-size: 1.5rem; margin-bottom: 5px;">
+            Final Score: <span id="final-score" style="color:var(--accent)">0</span>
+        </p>
+        <p style="font-family: sans-serif; font-size: 0.9rem; opacity: 0.7; margin-bottom: 10px;">
+            Best: <span id="best-score">0</span>
+        </p>
+        <p style="font-family: sans-serif; font-size: 0.8rem; opacity:0.7; margin-bottom: 30px;" id="achievements-summary"></p>
+        <button class="btn-ui" onclick="startGame()">Ignite Again</button>
+        <button class="btn-ui" onclick="hideScreens()">Main Menu</button>
+    </div>
+</div>
+
+<!-- Settings Screen -->
+<div id="settings-layer" class="screen hidden">
+    <h2 style="color:var(--accent); letter-spacing:10px; margin-bottom: 25px; text-shadow:0 0 18px rgba(255,206,68,0.9);">SETTINGS</h2>
+    <div class="container-box">
+        <!-- Gameplay section -->
+        <div class="settings-section-title">Gameplay</div>
+        <div class="settings-row">
+            <button class="btn-ui" onclick="setTick(150)">Slow</button>
+            <button class="btn-ui" onclick="setTick(100)">Soul</button>
+            <button class="btn-ui" onclick="setTick(70)">Hyper</button>
+        </div>
+        <div class="settings-row">
+            <button class="btn-ui" id="wall-btn" onclick="toggleWalls()">Walls: ON</button>
+            <button class="btn-ui" id="multi-food-btn" onclick="toggleMultiFood()">Multi Food: OFF</button>
+        </div>
+
+        <!-- Grid / Square Size (actually grid size) -->
+        <div class="settings-section-title">Grid Size</div>
+        <div class="settings-row">
+            <button class="btn-ui" onclick="setGrid(16)">Cozy (16x16)</button>
+            <button class="btn-ui" onclick="setGrid(20)">Classic (20x20)</button>
+            <button class="btn-ui" onclick="setGrid(24)">Tight (24x24)</button>
+        </div>
+
+        <!-- Snake size -->
+        <div class="settings-section-title">Snake Size</div>
+        <div class="settings-row">
+            <button class="btn-ui" onclick="setSnakeSize(0.55)">Slim</button>
+            <button class="btn-ui" onclick="setSnakeSize(0.68)">Balanced</button>
+            <button class="btn-ui" onclick="setSnakeSize(0.8)">Chunky</button>
+        </div>
+
+        <!-- Appearance section -->
+        <div class="settings-section-title">Snake Color</div>
+        <div class="settings-row">
+            <button class="btn-ui" onclick="setSnakeColor('#3cf5ff', '#4571e3')">Soul Blue</button>
+            <button class="btn-ui" onclick="setSnakeColor('#2ecc71', '#27ae60')">Emerald</button>
+            <button class="btn-ui" onclick="setSnakeColor('#e67e22', '#d35400')">Inferno</button>
+            <button class="btn-ui" onclick="setSnakeColor('#ff6bd5', '#ffce44')">Neon Forge</button>
+        </div>
+
+        <!-- Audio -->
+        <div class="settings-section-title">Audio</div>
+        <div class="settings-row">
+            <button class="btn-ui" id="audio-toggle" onclick="toggleAudio()">Sound: ON</button>
+        </div>
+
+        <button class="btn-ui" style="margin-top:20px;" onclick="hideScreens()">Return</button>
+    </div>
+</div>
+
+<!-- Leaderboard Screen -->
+<div id="board-layer" class="screen hidden">
+    <h2 style="color:var(--accent); letter-spacing:10px; margin-bottom: 25px; text-shadow:0 0 18px rgba(255,206,68,0.9);">HALL OF FAME</h2>
+    <div class="container-box" id="leaderboard-list"></div>
+    <button class="btn-ui" style="margin-top:25px;" onclick="hideScreens()">Return</button>
+</div>
+
+<!-- Credits Screen -->
+<div id="credits-layer" class="screen hidden" onclick="hideScreens()">
+    <h2 style="color:var(--accent); letter-spacing:15px; margin-bottom: 25px; text-shadow:0 0 18px rgba(255,206,68,0.9);">CREDITS</h2>
+    <div class="credits-window">
+        <div class="credits-wrap">
+            <div class="credit-header">Lead Developer</div>
+            <div class="credit-name">IAmWafflez</div>
+
+            <div class="credit-header">Beta Tester Assistants</div>
+            <div class="credit-name">MurkeyH2O</div>
+            <div class="credit-name">Arieleon</div>
+            <div class="credit-name">Olliver</div>
+
+            <div class="credit-header">Supporters</div>
+            <div class="credit-name">Sandy</div>
+            <div class="credit-name">SoulForge Community</div>
+
+            <div class="credit-header">Patreons</div>
+            
+            <div class="credit-name">@StaticNova</div>
+            <div class="credit-name">@Lilliann</div>
+            <div class="credit-name">@MonoChromaticYT</div>
+            <div class="credit-name">@Ellian9</div>
+            <div class="credit-name">@turbonimbusyt</div>
+            <div class="credit-name">@viviana</div>
+            <div class="credit-name">@Makeshift92382919382919192929</div>
+            <div class="credit-name">@ShiftyTUrtle</div>
+            <div class="credit-name">@Fifty20YT</div>
+            <div class="credit-name">@NotPenguinz0</div>
+            <div class="credit-name">@LUKEXD</div>
+            <div class="credit-name">@TaylorV</div>
+            <div class="credit-name">@MckayleeDK</div>
+            <div class="credit-name">@secretshh</div>
+            
+            
+            
+            <div class="credit-header">Special Thanks</div>
+            <div class="credit-name">You, the Player</div>
+        </div>
+    </div>
+</div>
+
+<!-- Version footer -->
+<div id="version-footer">
+    v1.2.0 &copy; SoulForge Studios – Advanced Build
+</div>
+
+<!-- Mobile controls -->
+<div id="mobile-controls">
+    <div class="mobile-row">
+        <div class="mobile-btn" onclick="queueDirection(0, -1)">▲</div>
+    </div>
+    <div class="mobile-row">
+        <div class="mobile-btn" onclick="queueDirection(-1, 0)">◀</div>
+        <div class="mobile-btn" onclick="queueDirection(1, 0)">▶</div>
+    </div>
+    <div class="mobile-row">
+        <div class="mobile-btn" onclick="queueDirection(0, 1)">▼</div>
+    </div>
+</div>
+
+<!-- Debug console -->
+<div id="debug-console">
+    <div><span class="label">FPS:</span> <span id="dbg-fps">0</span></div>
+    <div><span class="label">Tick:</span> <span id="dbg-tick">0</span>ms</div>
+    <div><span class="label">Seg:</span> <span id="dbg-seg">0</span></div>
+    <div><span class="label">Food:</span> <span id="dbg-food">0</span></div>
+    <div><span class="label">Obs:</span> <span id="dbg-obs">0</span></div>
+</div>
+
+<!-- Achievement toast -->
+<div id="achievement-toast"></div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Gameplay parameters (modifiable via settings)
+    let grid = 20;
+    let tileSize; // computed dynamically based on window size
+    let snakeThicknessFactor = 0.68; // portion of tileSize
+    let snakeMainColor = '#3cf5ff';
+    let snakeAltColor = '#4571e3';
+
+    let snake = [];
+    let foods = [{ x: 15, y: 10 }];
+    let obstacles = [];
+    let dir = { x: 1, y: 0 };
+    let nextDir = { x: 1, y: 0 };
+    let score = 0;
+    let gameActive = false;
+    let tickRate = 100;
+    let lastTick = 0;
+    let lerp = 0;
+    let walls = true;
+    let particles = [];
+    let multiFood = false;
+    let isPaused = false;
+    let lastFrameTime = performance.now();
+    let fps = 0;
+
+    // Combos & power-ups
+    let comboMultiplier = 1;
+    let comboTimer = 0; // ms left to keep combo alive
+    const COMBO_WINDOW = 3000; // 3 seconds
+
+    const POWERUP_TYPES = ['speed', 'slow', 'ghost'];
+    let powerups = [];
+    let activePowerup = null; // { type, timer }
+
+    // Audio (simple flag, you can plug real sounds in later)
+    let soundOn = true;
+
+    // High score & leaderboard
+    let highScores = JSON.parse(localStorage.getItem('sf_glide_hs')) || { score: 0 };
+    document.getElementById('high-score-val').innerText = highScores.score;
+
+    // Achievements (simple example)
+    let achievements = {
+        firstBlood: false,
+        tenStreak: false,
+        wallMaster: false,
+        ghostWalker: false
+    };
+
+    function resizeCanvas() {
+        const margin = 40;
+        const size = Math.min(window.innerWidth, window.innerHeight) - margin;
+        canvas.width = size;
+        canvas.height = size;
+        tileSize = size / grid;
+        if (!gameActive && snake.length > 0) draw();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    window.onload = () => {
+        resizeCanvas();
+
+        const i1 = document.getElementById('intro-1');
+        const i2 = document.getElementById('intro-2');
+        const menu = document.getElementById('menu-layer');
+
+        i1.querySelector('.intro-text').classList.add('animate-text');
+
+        setTimeout(() => {
+            i1.classList.add('hidden');
+            i2.classList.remove('hidden');
+            i2.querySelector('.intro-text').classList.add('animate-text');
+
+            setTimeout(() => {
+                i2.classList.add('hidden');
+                menu.classList.remove('hidden');
+            }, 3500);
+        }, 3500);
+    };
+
+    function startGame() {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('game-layer').classList.remove('hidden');
+
+        const mid = Math.floor(grid / 2);
+        snake = [
+            { x: mid,     y: mid, px: mid - 1, py: mid },
+            { x: mid - 1, y: mid, px: mid - 2, py: mid },
+            { x: mid - 2, y: mid, px: mid - 3, py: mid }
+        ];
+
+        dir = { x: 1, y: 0 };
+        nextDir = { x: 1, y: 0 };
+        score = 0;
+        gameActive = true;
+        isPaused = false;
+        lerp = 0;
+        lastTick = performance.now();
+        lastFrameTime = performance.now();
+        particles = [];
+        obstacles = [];
+        powerups = [];
+        activePowerup = null;
+        comboMultiplier = 1;
+        comboTimer = 0;
+
+        foods = [{ x: randomInt(0, grid - 1), y: randomInt(0, grid - 1) }];
+        if (multiFood) {
+            while (foods.length < 3) {
+                spawnFood();
+            }
+        }
+
+        document.getElementById('score-val').innerText = score;
+        document.getElementById('wall-indicator').innerText = `WALLS: ${walls ? 'ON' : 'OFF'}`;
+        document.getElementById('combo-indicator').innerText = `COMBO: x${comboMultiplier}`;
+        document.getElementById('pause-badge').style.display = 'none';
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function gameLoop(t) {
+        if (!gameActive) return;
+
+        const frameDt = t - lastFrameTime;
+        lastFrameTime = t;
+        fps = 1000 / frameDt;
+
+        if (!isPaused) {
+            const dt = t - lastTick;
+
+            if (dt > tickRate) {
+                updateLogic();
+                lastTick = t;
+                lerp = 0;
+            } else {
+                lerp = dt / tickRate;
+            }
+        }
+
+        draw();
+        updateDebugConsole();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function updateLogic() {
+        // Handle combo timer
+        if (comboTimer > 0) {
+            comboTimer -= tickRate;
+            if (comboTimer <= 0) {
+                comboMultiplier = 1;
+                document.getElementById('combo-indicator').innerText = `COMBO: x${comboMultiplier}`;
+            }
+        }
+
+        // Handle powerup timer
+        if (activePowerup) {
+            activePowerup.timer -= tickRate;
+            if (activePowerup.timer <= 0) {
+                endPowerup();
+            }
+        }
+
+        // Move snake
+        dir = nextDir;
+
+        const prevPositions = snake.map(seg => ({ x: seg.x, y: seg.y }));
+
+        let head = {
+            x: snake[0].x + dir.x,
+            y: snake[0].y + dir.y,
+            px: snake[0].x,
+            py: snake[0].y
+        };
+
+        if (walls && !isGhostActive()) {
+            if (head.x < 0 || head.x >= grid || head.y < 0 || head.y >= grid) {
+                return gameOver();
+            }
+        } else {
+            head.x = (head.x + grid) % grid;
+            head.y = (head.y + grid) % grid;
+        }
+
+        // Collision with self
+        if (!isGhostActive() && snake.some(s => s.x === head.x && s.y === head.y)) {
+            return gameOver();
+        }
+
+        // Collision with obstacle
+        if (!isGhostActive() && obstacles.some(o => o.x === head.x && o.y === head.y)) {
+            return gameOver();
+        }
+
+        snake.unshift(head);
+
+        // Check food pickups
+        let ateFood = false;
+        for (let i = foods.length - 1; i >= 0; i--) {
+            const f = foods[i];
+            if (head.x === f.x && head.y === f.y) {
+                ateFood = true;
+                foods.splice(i, 1);
+                handleFoodEaten(f);
+            }
+        }
+
+        if (!ateFood) {
+            snake.pop();
+        }
+
+        // Spawn new foods
+        if (foods.length === 0 || (multiFood && foods.length < 3)) {
+            spawnFood();
+        }
+
+        // Update segments previous positions
+        for (let i = 0; i < snake.length; i++) {
+            snake[i].px = prevPositions[i]?.x ?? snake[i].x;
+            snake[i].py = prevPositions[i]?.y ?? snake[i].y;
+        }
+
+        // Power-up spawn chance
+        maybeSpawnPowerup();
+
+        // More obstacles as score climbs
+        updateObstacles();
+    }
+
+    function handleFoodEaten(f) {
+        // Basic scoring with combo
+        if (!achievements.firstBlood) {
+            achievements.firstBlood = true;
+            showAchievement('FIRST BLOOD – Your first apple.');
+        }
+
+        comboTimer = COMBO_WINDOW;
+        comboMultiplier = Math.min(comboMultiplier + 0.1, 3).toFixed(1);
+
+        const gained = Math.round(1 * comboMultiplier);
+        score += gained;
+
+        document.getElementById('score-val').innerText = score;
+        document.getElementById('combo-indicator').innerText = `COMBO: x${comboMultiplier}`;
+
+        // Achievements based on combo
+        if (!achievements.tenStreak && comboMultiplier >= 2.5) {
+            achievements.tenStreak = true;
+            showAchievement('COMBO FIEND – Huge streak!');
+        }
+
+        // Particles for food
+        for (let i = 0; i < 14; i++) {
+            particles.push({
+                x: f.x * tileSize + tileSize / 2,
+                y: f.y * tileSize + tileSize / 2,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 1
+            });
+        }
+
+        playSound('eat');
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Grid
+        for (let i = 0; i < grid; i++) {
+            for (let j = 0; j < grid; j++) {
+                const baseColor = (i + j) % 2 === 0 ? '#1c2b2c' : '#10191c';
+                ctx.fillStyle = baseColor;
+                ctx.fillRect(i * tileSize, j * tileSize, tileSize, tileSize);
+            }
+        }
+
+        // Obstacles
+        obstacles.forEach(o => {
+            ctx.fillStyle = 'rgba(200,40,40,0.9)';
+            ctx.beginPath();
+            const cx = o.x * tileSize + tileSize / 2;
+            const cy = o.y * tileSize + tileSize / 2;
+            const r = tileSize * 0.38;
+            ctx.moveTo(cx + r, cy);
+            for (let k = 1; k < 5; k++) {
+                const angle = (Math.PI * 2 * k) / 5;
+                ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+            }
+            ctx.closePath();
+            ctx.fill();
+        });
+
+        // Food (glowing orbs)
+        foods.forEach(food => {
+            const fx = food.x * tileSize + tileSize / 2;
+            const fy = food.y * tileSize + tileSize / 2;
+            const fr = tileSize / 2 - 4;
+
+            const g = ctx.createRadialGradient(fx, fy, fr * 0.1, fx, fy, fr * 1.2);
+            g.addColorStop(0, 'rgba(255, 206, 68, 1)');
+            g.addColorStop(0.5, 'rgba(255, 100, 80, 0.9)');
+            g.addColorStop(1, 'rgba(255, 206, 68, 0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(fx, fy, fr * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffce44';
+            ctx.beginPath();
+            ctx.arc(fx, fy, fr * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Powerups
+        powerups.forEach(p => {
+            const px = p.x * tileSize + tileSize / 2;
+            const py = p.y * tileSize + tileSize / 2;
+            const r = tileSize * 0.3;
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate((performance.now() / 400) % (Math.PI * 2));
+            ctx.strokeStyle = p.type === 'speed' ? '#ff6bd5' : p.type === 'slow' ? '#3cf5ff' : '#9b59b6';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.rect(-r, -r, r * 2, r * 2);
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        // Snake body line
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = snakeAltColor;
+        ctx.lineWidth = tileSize * snakeThicknessFactor;
+        ctx.beginPath();
+
+        snake.forEach((s, i) => {
+            const curX = (s.px + (s.x - s.px) * lerp) * tileSize + tileSize / 2;
+            const curY = (s.py + (s.y - s.py) * lerp) * tileSize + tileSize / 2;
+
+            if (i === 0) ctx.moveTo(curX, curY);
+            else ctx.lineTo(curX, curY);
+        });
+
+        ctx.stroke();
+
+        // Head
+        const h = snake[0];
+        const hX = (h.px + (h.x - h.px) * lerp) * tileSize + tileSize / 2;
+        const hY = (h.py + (h.y - h.py) * lerp) * tileSize + tileSize / 2;
+
+        ctx.fillStyle = snakeMainColor;
+        ctx.beginPath();
+        ctx.arc(hX, hY, tileSize * snakeThicknessFactor / 1.7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = 'white';
+        const eyeOffsetX = 0.18 * tileSize;
+        const eyeOffsetY = -0.1 * tileSize;
+        const eyeRadius = 0.12 * tileSize;
+
+        ctx.beginPath();
+        ctx.arc(hX - eyeOffsetX, hY + eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(hX + eyeOffsetX, hY + eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'black';
+        const pupilRadius = eyeRadius * 0.45;
+        const lookX = dir.x * (eyeRadius * 0.4);
+        const lookY = dir.y * (eyeRadius * 0.4);
+
+        ctx.beginPath();
+        ctx.arc(hX - eyeOffsetX + lookX, hY + eyeOffsetY + lookY, pupilRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(hX + eyeOffsetX + lookX, hY + eyeOffsetY + lookY, pupilRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Particles
+        particles = particles.filter(p => p.life > 0);
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.04;
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = '#ffce44';
+            ctx.fillRect(p.x, p.y, 4, 4);
+            ctx.globalAlpha = 1;
+        });
+
+        // Powerup indicator (simple halo around head)
+        if (activePowerup) {
+            ctx.strokeStyle = activePowerup.type === 'speed' ? '#ff6bd5' : activePowerup.type === 'slow' ? '#3cf5ff' : '#9b59b6';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(hX, hY, tileSize * snakeThicknessFactor, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    function gameOver() {
+        gameActive = false;
+        playSound('death');
+
+        if (score > highScores.score) {
+            highScores.score = score;
+            localStorage.setItem('sf_glide_hs', JSON.stringify(highScores));
+        }
+
+        if (walls && !achievements.wallMaster && score >= 25) {
+            achievements.wallMaster = true;
+            showAchievement('WALL MASTER – 25+ with walls.');
+        }
+        if (activePowerup && activePowerup.type === 'ghost' && !achievements.ghostWalker) {
+            achievements.ghostWalker = true;
+            showAchievement('GHOST WALKER – Fell with ghost power.');
+        }
+
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('best-score').innerText = highScores.score;
+        document.getElementById('high-score-val').innerText = highScores.score;
+        document.getElementById('achievements-summary').innerText = summarizeAchievements();
+
+        document.getElementById('game-layer').classList.add('hidden');
+        document.getElementById('over-layer').classList.remove('hidden');
+    }
+
+    window.addEventListener('keydown', e => {
+        if (e.key === 'ArrowUp'   || e.key === 'w') queueDirection(0, -1);
+        if (e.key === 'ArrowDown' || e.key === 's') queueDirection(0, 1);
+        if (e.key === 'ArrowLeft' || e.key === 'a') queueDirection(-1, 0);
+        if (e.key === 'ArrowRight'|| e.key === 'd') queueDirection(1, 0);
+        if (e.key.toLowerCase() === 'p') togglePause();
+    });
+
+    function queueDirection(x, y) {
+        if (isPaused || !gameActive) return;
+        // prevent 180-degree turns
+        if (x === -dir.x && y === -dir.y) return;
+        if (x === dir.x && y === dir.y) return;
+        nextDir = { x, y };
+    }
+
+    function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function spawnFood() {
+        let spot;
+        let safety = 0;
+        do {
+            spot = {
+                x: randomInt(0, grid - 1),
+                y: randomInt(0, grid - 1)
+            };
+            safety++;
+        } while (
+            (snake.some(s => s.x === spot.x && s.y === spot.y) ||
+             foods.some(f => f.x === spot.x && f.y === spot.y) ||
+             obstacles.some(o => o.x === spot.x && o.y === spot.y))
+            && safety < 200
+        );
+        foods.push(spot);
+    }
+
+    function maybeSpawnPowerup() {
+        if (powerups.length > 0 || Math.random() > 0.05) return; // 5% chance per tick
+
+        let type = POWERUP_TYPES[randomInt(0, POWERUP_TYPES.length - 1)];
+        let spot;
+        let safety = 0;
+        do {
+            spot = { x: randomInt(0, grid - 1), y: randomInt(0, grid - 1) };
+            safety++;
+        } while (
+            (snake.some(s => s.x === spot.x && s.y === spot.y) ||
+             foods.some(f => f.x === spot.x && f.y === spot.y) ||
+             obstacles.some(o => o.x === spot.x && o.y === spot.y))
+            && safety < 200
+        );
+        powerups.push({ ...spot, type });
+    }
+
+    function updateObstacles() {
+        const desired = Math.min(Math.floor(score / 5), 12);
+        while (obstacles.length < desired) {
+            let spot = { x: randomInt(0, grid - 1), y: randomInt(0, grid - 1) };
+            if (
+                !snake.some(s => s.x === spot.x && s.y === spot.y) &&
+                !foods.some(f => f.x === spot.x && f.y === spot.y) &&
+                !obstacles.some(o => o.x === spot.x && o.y === spot.y)
+            ) {
+                obstacles.push(spot);
+            }
+        }
+    }
+
+    function togglePause() {
+        if (!gameActive) return;
+        isPaused = !isPaused;
+        document.getElementById('pause-badge').style.display = isPaused ? 'block' : 'none';
+    }
+
+    function showBoard() {
+        document.getElementById('menu-layer').classList.add('hidden');
+        document.getElementById('board-layer').classList.remove('hidden');
+        document.getElementById('leaderboard-list').innerHTML =
+            `<div class="score-entry" style="display:flex;justify-content:space-between;font-family:sans-serif;font-size:1.1rem;">
+                <span>1. Soul Master</span><span>${highScores.score}</span>
+            </div>`;
+    }
+
+    function showSettings() {
+        document.getElementById('menu-layer').classList.add('hidden');
+        document.getElementById('settings-layer').classList.remove('hidden');
+    }
+
+    function showCredits() {
+        document.getElementById('menu-layer').classList.add('hidden');
+        document.getElementById('credits-layer').classList.remove('hidden');
+    }
+
+    function hideScreens() {
+        document.querySelectorAll('.screen').forEach(s => {
+            if (s.id === 'menu-layer') s.classList.remove('hidden');
+            else s.classList.add('hidden');
+        });
+    }
+
+    function setTick(t) {
+        tickRate = t;
+        document.getElementById('dbg-tick').innerText = tickRate;
+    }
+
+    function toggleWalls() {
+        walls = !walls;
+        document.getElementById('wall-btn').innerText = `Walls: ${walls ? 'ON' : 'OFF'}`;
+        document.getElementById('wall-indicator').innerText = `WALLS: ${walls ? 'ON' : 'OFF'}`;
+    }
+
+    function toggleMultiFood() {
+        multiFood = !multiFood;
+        document.getElementById('multi-food-btn').innerText = `Multi Food: ${multiFood ? 'ON' : 'OFF'}`;
+    }
+
+    function setGrid(newGrid) {
+        grid = newGrid;
+        resizeCanvas();
+        if (gameActive) {
+            startGame();
+        }
+    }
+
+    function setSnakeSize(factor) {
+        snakeThicknessFactor = factor;
+    }
+
+    function setSnakeColor(main, alt) {
+        snakeMainColor = main;
+        snakeAltColor = alt;
+    }
+
+    function toggleAudio() {
+        soundOn = !soundOn;
+        document.getElementById('audio-toggle').innerText = `Sound: ${soundOn ? 'ON' : 'OFF'}`;
+    }
+
+    function playSound(type) {
+        if (!soundOn) return;
+        // You can wire actual audio here using HTMLAudioElement.
+        // Example stub:
+        // if (type === 'eat') new Audio('eat.wav').play();
+    }
+
+    function isGhostActive() {
+        return activePowerup && activePowerup.type === 'ghost';
+    }
+
+    // Check for powerup pickups inside updateLogic? We'll hook here by adding another function.
+    const originalUpdateLogic = updateLogic;
+    updateLogic = function wrappedUpdateLogic() {
+        originalUpdateLogicCore();
+    };
+
+    function originalUpdateLogicCore() {
+        // This is just the body of updateLogic we defined above, but we already used it.
+        // To keep things consistent, we won't duplicate logic here.
+        // In a real refactor, you would split movement, collision, powerups, etc.
+    }
+
+    // We already called updateLogic earlier, so we need to integrate powerup pickup directly there.
+    // For simplicity, hook into snake head after movement each tick by overriding requestAnimationFrame logic
+    // but you already have the full collision; we can add pickup detection to the updateLogic we wrote above.
+
+    // So we add this helper and call it inside updateLogic after snake has moved.
+    function checkPowerupPickup(head) {
+        for (let i = powerups.length - 1; i >= 0; i--) {
+            const p = powerups[i];
+            if (p.x === head.x && p.y === head.y) {
+                activatePowerup(p.type);
+                powerups.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Patch: monkey-patch updateLogic to also call checkPowerupPickup.
+    // Re-define updateLogic with full content including previous logic + powerups.
+
+    updateLogic = function() {
+        // Handle combo timer
+        if (comboTimer > 0) {
+            comboTimer -= tickRate;
+            if (comboTimer <= 0) {
+                comboMultiplier = 1;
+                document.getElementById('combo-indicator').innerText = `COMBO: x${comboMultiplier}`;
+            }
+        }
+
+        // Handle powerup timer
+        if (activePowerup) {
+            activePowerup.timer -= tickRate;
+            if (activePowerup.timer <= 0) {
+                endPowerup();
+            }
+        }
+
+        // Move snake
+        dir = nextDir;
+
+        const prevPositions = snake.map(seg => ({ x: seg.x, y: seg.y }));
+
+        let head = {
+            x: snake[0].x + dir.x,
+            y: snake[0].y + dir.y,
+            px: snake[0].x,
+            py: snake[0].y
+        };
+
+        if (walls && !isGhostActive()) {
+            if (head.x < 0 || head.x >= grid || head.y < 0 || head.y >= grid) {
+                return gameOver();
+            }
+        } else {
+            head.x = (head.x + grid) % grid;
+            head.y = (head.y + grid) % grid;
+        }
+
+        if (!isGhostActive() && snake.some(s => s.x === head.x && s.y === head.y)) {
+            return gameOver();
+        }
+
+        if (!isGhostActive() && obstacles.some(o => o.x === head.x && o.y === head.y)) {
+            return gameOver();
+        }
+
+        snake.unshift(head);
+
+        let ateFood = false;
+        for (let i = foods.length - 1; i >= 0; i--) {
+            const f = foods[i];
+            if (head.x === f.x && head.y === f.y) {
+                ateFood = true;
+                foods.splice(i, 1);
+                handleFoodEaten(f);
+            }
+        }
+
+        if (!ateFood) {
+            snake.pop();
+        }
+
+        for (let i = 0; i < snake.length; i++) {
+            snake[i].px = prevPositions[i]?.x ?? snake[i].x;
+            snake[i].py = prevPositions[i]?.y ?? snake[i].y;
+        }
+
+        if (foods.length === 0 || (multiFood && foods.length < 3)) {
+            spawnFood();
+        }
+
+        // Check powerup pickup
+        checkPowerupPickup(head);
+
+        maybeSpawnPowerup();
+        updateObstacles();
+    };
+
+    function activatePowerup(type) {
+        playSound('power');
+        const DURATION = 6000; // ms
+
+        if (type === 'speed') {
+            tickRate = Math.max(40, tickRate * 0.6);
+        } else if (type === 'slow') {
+            tickRate = Math.min(200, tickRate * 1.6);
+        } else if (type === 'ghost') {
+            // nothing special here other than collisions skipping walls/obstacles
+        }
+
+        activePowerup = { type, timer: DURATION };
+
+        if (type === 'ghost') {
+            showAchievement('GHOST MODE – Phase through fate.');
+        }
+    }
+
+    function endPowerup() {
+        if (!activePowerup) return;
+        // Reset tickRate to default-ish after speed/slow.
+        if (activePowerup.type === 'speed' || activePowerup.type === 'slow') {
+            tickRate = 100; // or track last chosen speed if you want
+        }
+        activePowerup = null;
+    }
+
+    function updateDebugConsole() {
+        document.getElementById('dbg-fps').innerText = fps.toFixed(0);
+        document.getElementById('dbg-tick').innerText = tickRate;
+        document.getElementById('dbg-seg').innerText = snake.length;
+        document.getElementById('dbg-food').innerText = foods.length;
+        document.getElementById('dbg-obs').innerText = obstacles.length;
+    }
+
+    function showAchievement(text) {
+        const el = document.getElementById('achievement-toast');
+        el.textContent = text;
+        el.classList.add('visible');
+        setTimeout(() => {
+            el.classList.remove('visible');
+        }, 2500);
+    }
+
+    function summarizeAchievements() {
+        const unlocked = [];
+        if (achievements.firstBlood) unlocked.push('First Blood');
+        if (achievements.tenStreak) unlocked.push('Combo Fiend');
+        if (achievements.wallMaster) unlocked.push('Wall Master');
+        if (achievements.ghostWalker) unlocked.push('Ghost Walker');
+        if (unlocked.length === 0) return 'No achievements yet. The Forge awaits.';
+        return 'Unlocked: ' + unlocked.join(', ');
+    }
+</script>
+
+</body>
+</html>
